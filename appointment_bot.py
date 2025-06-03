@@ -46,13 +46,50 @@ class AppointmentBot:
         
         while attempts < max_attempts:
             try:
-                self.driver.get("https://alohaq.honolulu.gov/?3&cat=3&name=Dealer%20Dash")
-                # Wait for calendar to appear
-                calendar = WebDriverWait(self.driver, 10).until(
-                    EC.presence_of_element_located((By.CLASS_NAME, "ui-datepicker-calendar"))
+                self.driver.get("https://alohaq.honolulu.gov/")
+                
+                # Wait for and click Dealer Dash button
+                dealer_dash = WebDriverWait(self.driver, 10).until(
+                    EC.element_to_be_clickable((By.CSS_SELECTOR, "div.button-look.location-category-button[data-category_id='3']"))
                 )
-                return True
-            except TimeoutException:
+                dealer_dash.click()
+                
+                # Wait for and click Make Appointment button
+                make_appointment = WebDriverWait(self.driver, 10).until(
+                    EC.element_to_be_clickable((By.ID, "newAppointment"))
+                )
+                make_appointment.click()
+                
+                # Wait for and click location (Kapalama Dealer Center)
+                location = WebDriverWait(self.driver, 10).until(
+                    EC.element_to_be_clickable((By.CSS_SELECTOR, "div.location.button-look.next[data-loc-val='DMVR']"))
+                )
+                location.click()
+                
+                # Wait for and click Dealer Dash transaction
+                transaction = WebDriverWait(self.driver, 10).until(
+                    EC.element_to_be_clickable((By.CSS_SELECTOR, "div.transaction.button-look[data-trans-type='DEALER']"))
+                )
+                transaction.click()
+                
+                # Wait for calendar to appear
+                try:
+                    calendar = WebDriverWait(self.driver, 5).until(
+                        EC.presence_of_element_located((By.CLASS_NAME, "ui-datepicker-calendar"))
+                    )
+                    return True
+                except TimeoutException:
+                    # Check if "no open appointments" message appears
+                    try:
+                        no_appointments = self.driver.find_element(By.XPATH, "//*[contains(text(), 'There are no open appointments at this location')]")
+                        if no_appointments.is_displayed():
+                            attempts += 1
+                            time.sleep(2)
+                            continue
+                    except NoSuchElementException:
+                        pass
+                    
+            except (TimeoutException, NoSuchElementException) as e:
                 attempts += 1
                 time.sleep(2)
                 self.driver.refresh()
